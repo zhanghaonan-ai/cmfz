@@ -1,0 +1,28 @@
+{
+  "page": "1",
+  "total": 2,
+  "records": "13",
+  "rows": [
+    {
+      "id": 9211,
+      "name": "小波",
+      "age": 80,
+      "bir": "2020-05-15",
+      "gender": "male"
+    },
+    {
+      "id": 234,
+      "name": "小白",
+      "age": 90,
+      "bir": "2010-05-15",
+      "gender": "female"
+    },
+    {
+      "id": 112,
+      "name": "小黑",
+      "age": 90,
+      "bir": "2010-05-15",
+      "gender": "female"
+    }
+  ]
+}

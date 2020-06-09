@@ -1,0 +1,249 @@
+<script>
+    var name_flag = false;
+    $(function () {
+        $("#userTable").jqGrid({
+            url: '/user/get_list/',
+            datatype: 'json',
+            styleUI: "Bootstrap",
+            autowidth: true,
+            pager: "#page",
+            rowNum: 2,
+            rowList: [2, 5, 10],
+            viewrecords: true,
+            cellEdit: true,
+            cellsubmit: 'remote',
+            cellurl: '/user/celledit/',
+            editurl: '/user/edit/',
+            colNames: ["ID", "用户名", "法名", "密码", "盐", '邮箱', "状态", '上一次登录时间', '地区', '操作'],
+            colModel: [
+                {name: "id", width: '20px'},
+                {name: "name", editable: true, width: '60px'},
+                {name: "religions_name", editable: true, width: '70px'},
+                {name: 'password', editable: true, width: '70px'},
+                {name: 'salt', width: '50px'},
+                {name: 'email', editable: true, width: '100px'},
+                {
+                    name: 'status', editable: true, width: '40px', formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === true) return '正常';
+                        else return '冻结'
+                    }, edittype: 'select', editoptions: {value: 'false:冻结;true:正常'}
+                },
+                {name: 'last_login_time', width: '90px'},
+                {
+                    name: 'address', editable: true, width: '60px', edittype: 'select',
+                    editoptions: {
+                        value: '北京:北京;' +
+                            '天津:天津;' +
+                            '河北:河北;' +
+                            '山西:山西;' +
+                            '内蒙古:内蒙古;' +
+                            '吉林:吉林;' +
+                            '黑龙江:黑龙江;' +
+                            '辽宁:辽宁;' +
+                            '上海:上海;' +
+                            '江苏:江苏;' +
+                            '浙江:浙江;' +
+                            '安徽:安徽;' +
+                            '福建:福建;' +
+                            '江西:江西;' +
+                            '山东:山东;' +
+                            '河南:河南;' +
+                            '湖北:湖北;' +
+                            '湖南:湖南;' +
+                            '广东:广东;' +
+                            '广西:广西;' +
+                            '海南:海南;' +
+                            '重庆:重庆;' +
+                            '四川:四川;' +
+                            '贵州:贵州;' +
+                            '云南:云南;' +
+                            '西藏:西藏;' +
+                            '陕西:陕西;' +
+                            '甘肃:甘肃;' +
+                            '青海:青海;' +
+                            '宁夏:宁夏;' +
+                            '新疆:新疆;' +
+                            '香港:香港;' +
+                            '澳门:澳门;' +
+                            '台湾:台湾'
+                    }
+                },
+                {
+                    name: 'options', width: '100px', formatter: function (cellvalue, options, rowObject) {
+                        return "<button class=\"btn btn-warning\"  name='edit' onclick=\"edit(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 修改</button>" + '&nbsp&nbsp' +
+                            "<button class=\"btn btn-danger\"  name='del' onclick=\"del(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 删除</button>"
+                    }
+                },
+            ],
+
+        });
+
+        // 新增用户
+        $("#save").click(function () {
+            if (name_flag) {
+                $.ajax({
+                    url: "/user/add/",
+                    type: "post",
+                    data: $('#addForm').serialize(),
+                    success: function (msg) {
+                        if (msg.status === 1) {
+                            $('#userTable').modal('hide');// 根据保存的返回值进行处理
+                            $('#userTable').trigger("reloadGrid");// 刷新jqgrid表格
+                        }
+                    }
+                });
+            }
+        });
+
+    });
+
+    // 用户名是否重复
+    function check_username() {
+        user_name = $('#user_name').val()
+        $.ajax({
+            url: '/user/check_username/',
+            type: 'get',
+            data: 'user_name=' + user_name,
+            success: function (msg) {
+                if (msg.status === 0) {
+                    $('#username_info').html('用户名已存在！！！')
+                    name_flag = false
+                } else {
+                    $('#username_info').html('')
+                    name_flag = true
+                }
+            }
+        })
+    }
+
+    function edit(row_id) {
+        $("#userTable").jqGrid('editGridRow', row_id, {
+            height: 300,
+            reloadAfterSubmit: true
+        });
+    }
+
+    function del(row_id) {
+        $("#userTable").jqGrid('delGridRow', row_id, {
+            reloadAfterSubmit: true
+        });
+    }
+</script>
+
+
+<div class="page-header">
+    <h2>用户信息管理</h2>
+</div>
+<ul class="nav nav-tabs ">
+    <li class="active"><a href="#"><b>用户信息</b></a></li>
+</ul>
+<div class="panel panel-default" style="padding: 40px">
+    <table id="userTable"></table>
+    <div class="alert alert-success" role="alert" id="addBannerMsg" style="display: none">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <strong id="msgShow"></strong>
+    </div>
+    <div id="page" style="width: auto;height: 50px"></div>
+    <!--模态框的打开方式
+            使用modal()方法打开
+            通过指定data-target与data-toggle两个属性来打开指定的模态框
+        -->
+    <button class="btn btn-primary" data-aa="@456" data-whatever="@123" id="btn" data-toggle="modal"
+            data-target="#carouselModal">添加
+    </button>
+</div>
+
+<body>
+<div class="modal fade" id="carouselModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:750px">
+            <div class="modal-header">
+                <!--用来关闭模态框的属性:data-dismiss="modal"-->
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新增用户</h4>
+            </div>
+            <div class="modal-body">
+                <form action="" id="addForm">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">用户名：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="user_name" id="user_name" class="form-control"
+                                       onblur="check_username()">
+                                <span class="text-danger" id="username_info"></span>
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">法名：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="religions_name" id="religions_name" class="form-control"
+                                       placeholder="">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">密码：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="password" id="password" class="form-control" placeholder="">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">邮箱：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="email" id="email" class="form-control" placeholder="">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">地区：</label>
+                            <div class="col-sm-10">
+                                <select type="text" name="address" id="address" class="form-control"
+                                        placeholder="请选择地区">
+                                    <option value="北京">北京</option>
+                                    <option value="天津">天津</option>
+                                    <option value="河北">河北</option>
+                                    <option value="山西">山西</option>
+                                    <option value="内蒙古">内蒙古</option>
+                                    <option value="吉林">吉林</option>
+                                    <option value="黑龙江">黑龙江</option>
+                                    <option value="辽宁">辽宁</option>
+                                    <option value="上海">上海</option>
+                                    <option value="江苏">江苏</option>
+                                    <option value="浙江">浙江</option>
+                                    <option value="安徽">安徽</option>
+                                    <option value="福建">福建</option>
+                                    <option value="江西">江西</option>
+                                    <option value="山东">山东</option>
+                                    <option value="河南">河南</option>
+                                    <option value="湖北">湖北</option>
+                                    <option value="湖南">湖南</option>
+                                    <option value="广东">广东</option>
+                                    <option value="广西">广西</option>
+                                    <option value="海南">海南</option>
+                                    <option value="重庆">重庆</option>
+                                    <option value="四川">四川</option>
+                                    <option value="贵州">贵州</option>
+                                    <option value="云南">云南</option>
+                                    <option value="西藏">西藏</option>
+                                    <option value="陕西">陕西</option>
+                                    <option value="甘肃">甘肃</option>
+                                    <option value="青海">青海</option>
+                                    <option value="宁夏">宁夏</option>
+                                    <option value="新疆">新疆</option>
+                                    <option value="香港">香港</option>
+                                    <option value="澳门">澳门</option>
+                                    <option value="台湾">台湾</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="save">保存</button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+

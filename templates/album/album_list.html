@@ -1,0 +1,371 @@
+<script>
+    $(function () {
+        $("#albumtable").jqGrid({
+            url: '/album/get_list/',
+            datatype: 'json',
+            styleUI: "Bootstrap",
+            autowidth: true,
+            height: '500px',
+            pager: "#page",
+            rowNum: 2,
+            rowList: [2, 5, 10],
+            viewrecords: true,
+            cellEdit: true,
+            editurl: '/album/edit/',
+            subGrid: true,
+            subGridRowExpanded: function (subGridId, albumId) {
+                addSubGrid(subGridId, albumId);
+            },
+            colNames: ["ID", "标题", "作者", "播音", "章节数", "评分", "上传时间", "操作"],
+            colModel: [
+                {name: "id", width: '50px'},
+                {name: "title", editable: true, width: '100px'},
+                {name: "author", editable: true, width: '100px'},
+                {name: 'broadcast', editable: true, width: '100px'},
+                {name: 'chapter_count', width: '50px'},
+                {name: 'score', width: '50px'},
+                {name: 'publish_time'},
+                {
+                    name: 'options', formatter: function (cellvalue, options, rowObject) {
+                        return "<button class=\"btn btn-warning\"  name='edit' onclick=\"edit(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 修改</button>" + '&nbsp&nbsp' +
+                            "<button class=\"btn btn-danger\"  name='del' onclick=\"del(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 删除</button>"
+                    }
+                },
+            ],
+
+        });
+
+        // 模态框提交
+        $("#save").click(function () {
+            // 通过formdata获取文件的值
+            let title = $("#title").val();
+            let author = $("#author").val();
+            let img_src = $("#img_src")[0].files[0];
+            let broadcast = $('#broadcast').val();
+            // let chapter_count = $('#chapter_count').val();
+            let score = $('#score').val();
+
+            let formData = new FormData();
+            formData.append("title", title);
+            formData.append("author", author);
+            formData.append("img_src", img_src);
+            formData.append("broadcast", broadcast);
+            // formData.append("chapter_count", chapter_count);
+            formData.append("score", score);
+
+            $.ajax({
+                url: "/album/add/",
+                type: "post",
+                data: formData,
+                processData: false,     // 使数据不做处理
+                contentType: false,     // 不设置请求头
+                success: function (msg) {
+                    $('#albumtable').trigger("reloadGrid");// 刷新jqgrid表格
+                    if (msg.status === 1) $('#albummodal').modal('hide');// 根据保存的返回值进行处理
+                    else alert('添加失败')
+                }
+            });
+        });
+
+    });
+
+    function edit(row_id) {
+        $("#albumtable").jqGrid('editGridRow', row_id, {
+            height: 300,
+            reloadAfterSubmit: true
+        });
+    }
+
+    function del(row_id) {
+        $("#albumtable").jqGrid('delGridRow', row_id, {
+            reloadAfterSubmit: true
+        });
+    }
+
+    // 展示二级表格
+    function addSubGrid(subGridId, albumId) {
+        // 为二级表格的table 以及 div动态生成id
+        console.log(subGridId);
+        let subGridTableId = subGridId + "table";
+        console.log(subGridTableId)
+        let subGridPageId = subGridId + "pager";
+        // 根据动态生成的id 指定html容器
+        $("#" + subGridId).html(
+            "<table id='" + subGridTableId + "'></table><div id='" + subGridPageId + "'></div>"
+        );
+        // 根据准备好的容器去生成表格
+        $("#" + subGridTableId).jqGrid({
+            url: "/album/chapters_ofalbum/?albumId=" + albumId,
+            datatype: 'json',
+            styleUI: "Bootstrap",
+            autowidth: true,
+            pager: "#" + subGridPageId,
+            rowNum: 2,
+            rowList: [2, 5, 10],
+            viewrecords: true,
+            toolbar: [true, 'top'],
+            cellEdit: true,
+            editurl: '/album/chapter_edit/',
+            colNames: ["ID", "章节名", "大小", "时长", "章节url", "操作"],
+            colModel: [
+                {name: "id", width: '50px'},
+                {name: "title", editable: true, width: '100px'},
+                {name: "size", width: '50px'},
+                {name: "time_long", width: '50px'},
+                {name: "url", editable: true, edittype: 'file'},
+                {
+                    name: "option", formatter: function (cellvalue, options, rowObject) {
+                        console.log(rowObject)
+                        return "<a href=\"javascript:void(0)\" onclick=\"playAudio('" + rowObject.url + "')\" class=\"btn btn-primary\"><span class=\"glyphicon glyphicon-play\"></span> 播放</a>" +
+                            "&nbsp&nbsp<button class=\"btn btn-warning\"  name='edit' onclick=\"chapter_edit('" + rowObject.title + "'," + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 修改</button>" + '&nbsp&nbsp' +
+                            "<button class=\"btn btn-danger\"  name='del' onclick=\"chapter_del(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 删除</button>"
+                    }
+                },
+            ]
+        });
+        // 在工具栏中添加按钮
+        $('#t_' + subGridTableId).append('<button class="btn btn-primary" onclick="showAddChapter()" id="chapter_add" style="float: left" data-albumID="' + albumId + '">添加章节</button>')
+
+    }
+
+    function chapter_save() {
+        let formdata = new FormData();
+        let album_id = $('#chapter_add').attr('data-albumID');
+        formdata.append('title', $('#chapter_title').val());
+        formdata.append('url', $("#url")[0].files[0]);
+        formdata.append('albumID', album_id);
+
+        $.ajax({
+            url: "/album/chapter_add/",
+            type: "post",
+            data: formdata,
+            processData: false,     // 使数据不做处理
+            contentType: false,     // 不设置请求头
+            success: function (msg) {
+                $("#albumtable_" + album_id + "table").trigger("reloadGrid");// 刷新jqgrid表格
+                if (msg.status === 1) $('#chapter_modal').modal('hide');// 根据保存的返回值进行处理
+                else alert('添加失败')
+            }
+        });
+    }
+
+    function chapter_edit(title, id) {
+        $('#edit_modal').modal('show');
+        $('#edit_chapter_title').val(title);
+        $('#edit_save').prop('data-chapter-id', id)
+    }
+
+    function chapter_del(id) {
+        let album_id = $('#chapter_add').attr('data-albumID');
+        console.log(id);
+        $("#albumtable_" + album_id + "table").jqGrid('delGridRow', id, {
+            reloadAfterSubmit: true
+        });
+    }
+
+    function edit_save() {
+        let formdata = new FormData();
+        let album_id = $('#chapter_add').attr('data-albumID');
+        formdata.append('title', $('#edit_chapter_title').val());
+        formdata.append('url', $("#edit_url")[0].files[0]);
+        formdata.append('chapter_id', $('#edit_save').prop('data-chapter-id'));
+
+        $.ajax({
+            url: "/album/chapter_edit/",
+            type: "post",
+            data: formdata,
+            processData: false,     // 使数据不做处理
+            contentType: false,     // 不设置请求头
+            success: function (msg) {
+                $("#albumtable_" + album_id + "table").trigger("reloadGrid");// 刷新jqgrid表格
+                if (msg.status === 1) $('#edit_modal').modal('hide');// 根据保存的返回值进行处理
+                else alert('添加失败')
+            }
+        });
+    }
+
+    // 展示添加章节的模态框
+    function showAddChapter() {
+        $("#chapter_modal").modal('show');
+    }
+
+    // 播放音频  需要传入当前播放音频的url
+    function playAudio(url) {
+        // 展示播放框
+        $("#playAudioDiv").modal('show');
+        $('#playAudioId').attr("src", '/static/' + url);
+    }
+
+</script>
+
+
+<div class="page-header">
+    <h2>专辑管理</h2>
+</div>
+<ul class="nav nav-tabs ">
+    <li class="active"><a href="#"><b>专辑信息</b></a></li>
+</ul>
+<div class="panel panel-default" style="padding: 40px">
+    <!--专辑jqgrid表格-->
+    <table id="albumtable"></table>
+
+    <div class="alert alert-success" role="alert" id="addBannerMsg" style="display: none">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <strong id="msgShow"></strong>
+    </div>
+    <div id="page" style="width: auto;height: 50px"></div>
+    <!--模态框的打开方式
+            使用modal()方法打开
+            通过指定data-target与data-toggle两个属性来打开指定的模态框
+        -->
+    <button class="btn btn-primary" id="btn" data-toggle="modal"
+            data-target="#albummodal">添加
+    </button>
+</div>
+
+<body>
+<div class="modal fade" id="albummodal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:750px">
+            <div class="modal-header">
+                <!--用来关闭模态框的属性:data-dismiss="modal"-->
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新增专辑</h4>
+            </div>
+            <div class="modal-body">
+                <form action="" id="albumForm">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">标题：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="title" id="title" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">作者：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="author" id="author" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">播音：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="broadcast" id="broadcast" class="form-control">
+                            </div>
+                        </div>
+
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">评分：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="score" id="score" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">图片：</label>
+                            <div class="col-sm-10">
+                                <input type="file" name="img_src" id="img_src" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="save">保存</button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="chapter_modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:750px">
+            <!--模态框标题-->
+            <div class="modal-header">
+                <!--
+                    用来关闭模态框的属性:data-dismiss="modal"
+                -->
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">添加章节信息</h4>
+            </div>
+
+            <!--模态框内容体-->
+            <div class="modal-body">
+                <!--模态框内容体-->
+                <form action="" id="chapterForm">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">章节名：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="chapter" id="chapter_title" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">音频：</label>
+                            <div class="col-sm-10">
+                                <input type="file" name="url" id="url" class="form-control">
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <!--模态页脚-->
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" id="chapter_save" onclick="chapter_save()">保存</button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="edit_modal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:750px">
+            <!--模态框标题-->
+            <div class="modal-header">
+                <!--
+                    用来关闭模态框的属性:data-dismiss="modal"
+                -->
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">修改章节信息</h4>
+            </div>
+
+            <!--模态框内容体-->
+            <div class="modal-body">
+                <!--模态框内容体-->
+                <form action="" id="editForm">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">章节名：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="chapter" id="edit_chapter_title" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">音频：</label>
+                            <div class="col-sm-10">
+                                <input type="file" name="url" id="edit_url" class="form-control">
+                            </div>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+            <!--模态页脚-->
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" id="edit_save" data-chapter-id='' onclick="edit_save()">
+                    保存
+                </button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="playAudioDiv" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <!--使用htmlaudio完成播放-->
+        <audio id="playAudioId" src="" controls></audio>
+    </div>
+</div>
+</body>
+

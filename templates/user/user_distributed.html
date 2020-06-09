@@ -1,0 +1,75 @@
+<!-- 为ECharts准备一个具备大小（宽高）的Dom -->
+<div class="page-header">
+    <h2>用户全国分布图</h2>
+</div>
+<div id="main" style="width: 1000px;height:500px;margin: 20px auto"></div>
+<script type="text/javascript">
+    // 基于准备好的dom，初始化echarts实例
+    var myChart = echarts.init(document.getElementById('main'));
+    // 异步加载数据
+    $.ajax({
+        url: '/user/get_distribute/',
+        type: 'get',
+        cache:false,
+        dataType: 'json',
+        success: function (data) {
+            myChart.setOption({
+                series: [
+                    {
+                        name: '4⽉',
+                        type: 'map',
+                        mapType: 'china',
+                        roam: false,
+                        label: {
+                            normal: {
+                                show: false
+                            },
+                            emphasis: {
+                                show: true
+                            }
+                        },
+                        data: data.data
+                    }
+                ]
+            })
+        }
+    })
+    // 指定图表的配置项和数据
+    var option = {
+        title: {
+            text: '用户分布图',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item'
+        },
+        legend: {
+            orient: 'vertical',
+            left: 'left',
+            data: ['4月']
+        },
+        visualMap: {
+            min: 0,
+            max: 10,
+            left: 'left',
+            top: 'bottom',
+            text: ['⾼', '低'], // ⽂本，默认为数值⽂本
+            calculable: true
+        },
+        toolbox: {
+            show: true,
+            orient: 'vertical',
+            left: 'right',
+            top: 'center',
+            feature: {
+                mark: {show: true},
+                dataView: {show: true, readOnly: false},
+                restore: {show: true},
+                saveAsImage: {show: true}
+            }
+        },
+
+    };
+    // 使用刚指定的配置项和数据显示图表。
+    myChart.setOption(option);
+</script>

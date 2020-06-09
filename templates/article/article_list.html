@@ -1,0 +1,277 @@
+<script>
+    $(function () {
+        $("#article_table").jqGrid({
+            url: '/article/get_list/',
+            datatype: 'json',
+            styleUI: "Bootstrap",
+            autowidth: true,
+            pager: "#page",
+            rowNum: 2,
+            rowList: [2, 5, 10],
+            viewrecords: true,
+            cellEdit: true,
+            editurl: '/article/article_del/',
+            cellsubmit:'remote',
+            cellurl:'/article/celledit/',
+            colNames: ["ID", "标题", "作者", "发表时间", "类别", '内容', "操作"],
+            colModel: [
+                {name: "id"},
+                {name: "title", editable: true},
+                {name: "author", editable: true},
+                {name: "publish_time"},
+                {
+                    name: "cate",
+                    editable: true,
+                    edittype: 'select',
+                    editoptions: {value: 'false:上师言教;true:显密法要'},
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === false) return '上师言教'
+                        else return '显密法要'
+                    }
+                },
+                {
+                    name: 'content', hidden: true
+                },
+                {
+                    name: 'options', formatter: function (cellvalue, options, rowObject) {
+                        return "<button class=\"btn btn-warning\"  name='edit' onclick=\"edit(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 修改</button>" + '&nbsp&nbsp' +
+                            "<button class=\"btn btn-danger\"  name='del' onclick=\"del(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 删除</button>"
+                    }
+                }
+            ],
+
+        });
+
+
+        // 模态框提交 新增的文章信息
+        $("#save").click(function () {
+            $.ajax({
+                url: "/article/add/",
+                type: "post",
+                data: $('#article_form').serialize(),
+                success: function () {
+                    $('#articlelModal').modal('hide');// 根据保存的返回值进行处理
+                    $('#article_table').trigger("reloadGrid");// 刷新jqgrid表格
+                }
+            });
+        });
+
+    });
+
+    // 点击添加 弹出模态框，新增文章信息
+    function add() {
+        $('#articlelModal').modal('show')
+        $("#title").val('');
+        $('#author').val('')
+        KindEditor.html("#article_content", '');
+        KindEditor.create('#article_content', {
+            width: '100px',
+            height: '300px',
+            items: [
+                'source', '|', 'undo', 'redo', '|', 'preview', 'print', 'template', 'code', 'cut', 'copy', 'paste',
+                'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+                'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+                'superscript', 'clearhtml', 'quickformat', 'selectall',
+                'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+                'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'image', 'multiimage',
+                'flash', 'media', 'insertfile', 'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+                'anchor', 'link', 'unlink'
+            ],
+            resizeType: 1,
+            uploadJson: "/article/pic_upload/",     // 上传图片的路径
+            allowFileManager: true,     // 显示图片空间的按钮
+            fileManagerJson: "/article/get_all_pic/",        // 获取图片空间中的图片的 后端请求路径
+            afterBlur: function () { // 将富文本同步带textarea文本域中
+                this.sync()
+            }
+        })
+    }
+
+    // 编辑文章的方法
+    function edit(id) {
+        // 获取当前行的值
+        let row_data = $("#article_table").jqGrid("getRowData", id);
+        // 进行值得回显
+        $("#editModal").modal("show");
+        $('#editid').html(row_data.id)
+        $("#edittitle").val(row_data.title);
+        $('#editauthor').val(row_data.author)
+        $("#editcate").val(row_data.cate)
+        KindEditor.html("#editcontent", row_data.content);
+        KindEditor.create("#editcontent", {
+            width: '100px',
+            height: '300px',
+            items: [
+                'source', '|', 'undo', 'redo', '|', 'preview', 'print', 'template', 'code', 'cut', 'copy', 'paste',
+                'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+                'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+                'superscript', 'clearhtml', 'quickformat', 'selectall',
+                'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+                'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'image', 'multiimage',
+                'flash', 'media', 'insertfile', 'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+                'anchor', 'link', 'unlink'
+            ],
+            allowFileManager: true,
+            uploadJson: "/article/pic_upload/",
+            fileManagerJson: "/article/get_all_pic/",
+            resizeType: 1,
+            // 提交文章内容时必须将富文本框的值同步到 textarea中 否则后台无法获取值
+            afterBlur: function () {
+                this.sync()
+            }
+        });
+    }
+
+    function edit_save() {
+        var formData = new FormData();
+        formData.append('id', $('#editid').html())
+        formData.append("title", $('#edittitle').val());
+        formData.append("author", $('#editauthor').val());
+        formData.append("cate", $('#editcate').val());
+        formData.append("content", $('#editcontent').val());
+
+        $.ajax({
+            url: "/article/edit/",
+            type: "post",
+            data: formData,
+            processData: false,     // 使数据不做处理
+            contentType: false,     // 不设置请求头
+            success: function () {
+                $('#editModal').modal('hide');// 根据保存的返回值进行处理
+                $('#article_table').trigger("reloadGrid");// 刷新jqgrid表格
+            }
+        });
+    }
+
+    function del(row_id) {
+        $("#article_table").jqGrid('delGridRow', row_id, {
+            reloadAfterSubmit: true
+        });
+    }
+</script>
+
+
+<div class="page-header">
+    <h2>文章管理</h2>
+</div>
+<ul class="nav nav-tabs ">
+    <li class="active"><a href="#"><b>显密法要/上师言教</b></a></li>
+</ul>
+<div class="panel panel-default" style="padding: 40px">
+    <table id="article_table"></table>
+
+    <div class="alert alert-success" role="alert" id="addBannerMsg" style="display: none">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <strong id="msgShow"></strong>
+    </div>
+    <div id="page" style="width: auto;height: 50px"></div>
+    <button class="btn btn-primary" id="btn" onclick="add()">添加</button>
+</div>
+<body>
+<div class="modal fade" id="articlelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:850px">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新增文章</h4>
+            </div>
+            <div class="modal-body">
+                <form action="" id="article_form">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">标题：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="title" id="title" class="form-control"
+                                       placeholder="请输入文章标题">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">作者：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="author" id="author" class="form-control" placeholder="作者">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">类别：</label>
+                            <div class="col-sm-10">
+                                <select name="cate" id="cate" class="form-control">
+                                    <option value="1">显密法要</option>
+                                    <option value="0">上师言教</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">内容：</label>
+                            <div class="col-sm-10">
+                                <textarea name="content" id="article_content"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="save">保存</button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:850px">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新增文章</h4>
+            </div>
+            <div class="modal-body">
+                <form action="" id="edit_form">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">ID：</label>
+                            <div class="col-sm-10">
+                                <span class="text-info" id="editid"></span>
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">标题：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="title" id="edittitle" class="form-control"
+                                       placeholder="请输入文章标题">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">作者：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="author" id="editauthor" class="form-control" placeholder="作者">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">类别：</label>
+                            <div class="col-sm-10">
+                                <select name="cate" id="editcate" class="form-control">
+                                    <option value="显密法要">显密法要</option>
+                                    <option value="上师言教">上师言教</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">内容：</label>
+                            <div class="col-sm-10">
+                                <textarea name="content" id="editcontent"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="edit_save" onclick="edit_save()">
+                    保存
+                </button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+

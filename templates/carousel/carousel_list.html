@@ -1,0 +1,157 @@
+<script>
+    $(function () {
+        $("#carouseltable").jqGrid({
+            url: '/carousel/get_list/',
+            datatype: 'json',
+            styleUI: "Bootstrap",
+            autowidth: true,
+            pager: "#page",
+            rowNum: 2,
+            rowList: [2, 5, 10],
+            viewrecords: true,
+            cellEdit: true,
+            editurl: '/carousel/edit/',
+            colNames: ["ID", "描述", "上传时间", "是否显示", "图片", "操作"],
+            colModel: [
+                {name: "id"},
+                {name: "desc", editable: true},
+                {name: "date"},
+                {
+                    name: "status",
+                    editable: true,
+                    edittype: 'select',
+                    editoptions: {dataUrl: "/carousel/get_status"},
+                    formatter: function (cellvalue, options, rowObject) {
+                        if (cellvalue === false) return '不显示'
+                        else return '显示'
+                    }
+                },
+                {
+                    name: "img_url", formatter: function (cellvalue, options, rowObject) {
+                        return "<img style='height:50px' src='/static/" + cellvalue + "'>"
+                    }
+                },
+                {
+                    name: 'options', formatter: function (cellvalue, options, rowObject) {
+                        return "<button class=\"btn btn-warning\"  name='edit' onclick=\"edit(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 修改</button>" + '&nbsp&nbsp' +
+                            "<button class=\"btn btn-danger\"  name='del' onclick=\"del(" + rowObject.id + ")\"><span class=\"glyphicon glyphicon-edit\"></span> 删除</button>"
+                    }
+                },
+            ],
+
+        });
+
+
+        // 模态框提交
+        $("#save").click(function () {
+            // 通过formdata获取文件的值
+            var title = $("#upload_title").val();
+            var status = $("#upload_status").val();
+            var pic = $("#upload_pic")[0].files[0];
+
+            var formData = new FormData();
+            formData.append("title", title);
+            formData.append("status", status);
+            formData.append("pic", pic);
+
+            $.ajax({
+                url: "/carousel/add/",
+                type: "post",
+                data: formData,
+                processData: false,     // 使数据不做处理
+                contentType: false,     // 不设置请求头
+                success: function () {
+                    $('#carouseltable').modal('hide');// 根据保存的返回值进行处理
+                    $('#carouseltable').trigger("reloadGrid");// 刷新jqgrid表格
+                }
+            });
+        });
+
+    });
+
+    function edit(row_id) {
+        $("#carouseltable").jqGrid('editGridRow', row_id, {
+            height: 300,
+            reloadAfterSubmit: true
+        });
+    }
+
+    function del(row_id) {
+        $("#carouseltable").jqGrid('delGridRow', row_id, {
+            reloadAfterSubmit: true
+        });
+    }
+</script>
+
+
+<div class="page-header">
+    <h2>轮播图管理</h2>
+</div>
+<ul class="nav nav-tabs ">
+    <li class="active"><a href="#"><b>轮播图信息</b></a></li>
+</ul>
+<div class="panel panel-default" style="padding: 40px">
+    <table id="carouseltable"></table>
+
+    <div class="alert alert-success" role="alert" id="addBannerMsg" style="display: none">
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
+                aria-hidden="true">&times;</span></button>
+        <strong id="msgShow"></strong>
+    </div>
+    <div id="page" style="width: auto;height: 50px"></div>
+    <!--模态框的打开方式
+            使用modal()方法打开
+            通过指定data-target与data-toggle两个属性来打开指定的模态框
+        -->
+    <button class="btn btn-primary" data-aa="@456" data-whatever="@123" id="btn" data-toggle="modal"
+            data-target="#carouselModal">添加
+    </button>
+</div>
+
+<body>
+<div class="modal fade" id="carouselModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="width:750px">
+            <div class="modal-header">
+                <!--用来关闭模态框的属性:data-dismiss="modal"-->
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                <h4 class="modal-title">新增轮播图</h4>
+            </div>
+            <div class="modal-body">
+                <form action="" id="bannerForm">
+                    <div class="modal-body form-horizontal">
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">描述：</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="title" id="upload_title" class="form-control"
+                                       placeholder="请输入图片标题">
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">状态：</label>
+                            <div class="col-sm-10">
+                                <select type="text" name="status" id="upload_status" class="form-control"
+                                        placeholder="请选择图片状态">
+                                    <option value="1">显示</option>
+                                    <option value="0">不显示</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group ">
+                            <label class="col-sm-2 control-label">图片：</label>
+                            <div class="col-sm-10">
+                                <input type="file" name="pic" id="upload_pic" class="form-control" placeholder="">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" id="modal_footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="save">保存</button>
+                <button type="button" class="btn btn-warning" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+
